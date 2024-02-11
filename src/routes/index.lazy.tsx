@@ -8,17 +8,92 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { createLazyFileRoute } from "@tanstack/react-router";
+import { cadastro, logar } from "@/users";
+import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 export const Route = createLazyFileRoute("/")({
   component: Index,
 });
 
+const EntarSchema = z.object({
+  email: z.string().email(),
+  senha: z.string().min(1),
+});
+const CadastroSchema = z
+  .object({
+    id: z.string().optional(),
+    nome: z.string().min(2, {
+      message: "Nome deve conter pelo menos 2 caracteres.",
+    }),
+    email: z.string().email(),
+    senha: z
+      .string()
+      .min(4, { message: "Senha deve conter pelo menos 4 caracteres" }),
+    confirmarSenha: z
+      .string()
+      .min(4, { message: "Senha deve conter pelo menos 4 caracteres" }),
+  })
+  .refine((data) => data.senha == data.confirmarSenha, {
+    message: "Senhas não são iguais",
+    path: ["confirmarSenha"],
+  });
+
 function Index() {
+  const navigate = useNavigate();
+
+  const cadastroForm = useForm<z.infer<typeof CadastroSchema>>({
+    resolver: zodResolver(CadastroSchema),
+    defaultValues: {
+      nome: "",
+      email: "",
+      senha: "",
+      confirmarSenha: "",
+    },
+  });
+
+  const entarForm = useForm<z.infer<typeof EntarSchema>>({
+    resolver: zodResolver(EntarSchema),
+    defaultValues: {
+      email: "",
+      senha: "",
+    },
+  });
+
+  function onSubmit(data: z.infer<typeof CadastroSchema>) {
+    cadastro(data).then((res) => {
+      if (res) {
+        navigate({ to: "/about" });
+      } else {
+        cadastroForm.setError("email", { message: "Email já cadastrado" });
+      }
+    });
+  }
+
+  function entrar(data: z.infer<typeof EntarSchema>) {
+    logar(data).then((res) => {
+      if (res) {
+        navigate({ to: "/about" });
+      } else {
+        entarForm.setError("email", { message: "Email ou senha invalido" });
+        entarForm.setError("senha", { message: "Email ou senha invalido" });
+      }
+    });
+  }
+
   return (
-    <body className="h-screen p-4">
+    <div className="h-screen p-4">
       <header>
         <p className="text-3xl font-bold p-2 pl-10">COMMUNITY CHAT</p>
       </header>
@@ -40,60 +115,146 @@ function Index() {
               <TabsTrigger value="entrar">Entrar</TabsTrigger>
             </TabsList>
             <TabsContent value="cadastro">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Comece a utilizar a Community</CardTitle>
-                  <CardDescription>
-                    Crie uma conta gratuitamente
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex flex-col space-y-1.5">
-                    <Label htmlFor="name">Nome</Label>
-                    <Input id="nome" placeholder="Nome" />
-                  </div>
-                  <div className="flex flex-col space-y-1.5">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" placeholder="Email" />
-                  </div>
-                  <div className="flex flex-col space-y-1.5">
-                    <Label htmlFor="senha">Senha</Label>
-                    <Input id="senha" placeholder="Senha" />
-                  </div>
-                  <div className="flex flex-col space-y-1.5">
-                    <Label htmlFor="confirmarSenha">Confirmar Senha</Label>
-                    <Input id="confirmarSenha" placeholder="Confirmar Senha" />
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button>Casdastre-se</Button>
-                </CardFooter>
-              </Card>
+              <Form {...cadastroForm}>
+                <form onSubmit={cadastroForm.handleSubmit(onSubmit)}>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Comece a utilizar a Community</CardTitle>
+                      <CardDescription>
+                        Crie uma conta gratuitamente
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex flex-col space-y-1.5">
+                        <FormField
+                          control={cadastroForm.control}
+                          name="nome"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Nome</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Nome" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="flex flex-col space-y-1.5">
+                        <FormField
+                          control={cadastroForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Email" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="flex flex-col space-y-1.5">
+                        <FormField
+                          control={cadastroForm.control}
+                          name="senha"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Senha</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="password"
+                                  placeholder="Senha"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="flex flex-col space-y-1.5">
+                        <FormField
+                          control={cadastroForm.control}
+                          name="confirmarSenha"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Confrimar Senha</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="password"
+                                  placeholder="Confrimar Senha"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button type="submit">Cadastre-se</Button>
+                    </CardFooter>
+                  </Card>
+                </form>
+              </Form>
             </TabsContent>
             <TabsContent value="entrar">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Acesse sua conta</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex flex-col space-y-1.5">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" placeholder="Email" />
-                  </div>
-                  <div className="flex flex-col space-y-1.5">
-                    <Label htmlFor="senha">Senha</Label>
-                    <Input id="senha" placeholder="Senha" />
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button>Entrat</Button>
-                </CardFooter>
-              </Card>
+              <Form {...entarForm}>
+                <form onSubmit={entarForm.handleSubmit(entrar)}>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Acesse sua conta</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex flex-col space-y-1.5">
+                        <FormField
+                          control={entarForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Email" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="flex flex-col space-y-1.5">
+                        <FormField
+                          control={entarForm.control}
+                          name="senha"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Senha</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="password"
+                                  placeholder="Senha"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button type="submit">Cadastre-se</Button>
+                    </CardFooter>
+                  </Card>
+                </form>
+              </Form>
             </TabsContent>
           </Tabs>
         </section>
       </main>
-    </body>
+    </div>
   );
 }
 
