@@ -9,8 +9,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cadastro, logar } from "@/users";
-import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
+import { cadastro, logar, useAuth } from "@/users";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -22,13 +22,15 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { flushSync } from "react-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
-export const Route = createLazyFileRoute("/")({
+export const Route = createFileRoute("/")({
   component: Index,
 });
 
 const EntarSchema = z.object({
-  email: z.string().email(),
+  email: z.string(),
   senha: z.string().min(1),
 });
 const CadastroSchema = z
@@ -52,7 +54,7 @@ const CadastroSchema = z
 
 function Index() {
   const navigate = useNavigate();
-
+  const auth = useAuth();
   const cadastroForm = useForm<z.infer<typeof CadastroSchema>>({
     resolver: zodResolver(CadastroSchema),
     defaultValues: {
@@ -62,6 +64,7 @@ function Index() {
       confirmarSenha: "",
     },
   });
+  const queryClient = useQueryClient();
 
   const entarForm = useForm<z.infer<typeof EntarSchema>>({
     resolver: zodResolver(EntarSchema),
@@ -74,7 +77,12 @@ function Index() {
   function onSubmit(data: z.infer<typeof CadastroSchema>) {
     cadastro(data).then((res) => {
       if (res) {
-        navigate({ to: "/about" });
+        flushSync(() => {
+          auth.setUser(data.nome);
+        });
+
+        queryClient.invalidateQueries();
+        navigate({ to: "/dashboard" });
       } else {
         cadastroForm.setError("email", { message: "Email já cadastrado" });
       }
@@ -84,7 +92,12 @@ function Index() {
   function entrar(data: z.infer<typeof EntarSchema>) {
     logar(data).then((res) => {
       if (res) {
-        navigate({ to: "/about" });
+        flushSync(() => {
+          auth.setUser(data.email);
+        });
+        queryClient.invalidateQueries({queryKey:['users']});
+        navigate({ to: "/dashboard" });
+
       } else {
         entarForm.setError("email", { message: "Email ou senha invalido" });
         entarForm.setError("senha", { message: "Email ou senha invalido" });
@@ -245,7 +258,7 @@ function Index() {
                       </div>
                     </CardContent>
                     <CardFooter>
-                      <Button type="submit">Cadastre-se</Button>
+                      <Button type="submit">Entar</Button>
                     </CardFooter>
                   </Card>
                 </form>
