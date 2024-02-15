@@ -1,14 +1,13 @@
 import "./chat.css";
 import { useEffect, useState } from "react";
-import { Socket, io } from "socket.io-client";
-import { Textarea } from "./ui/textarea";
+import { Socket } from "socket.io-client";
+
 import { Button } from "./ui/button";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "./ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Input } from "./ui/input";
-import { useQuery } from "@tanstack/react-query";
 
 interface Message {
   name: string;
@@ -17,10 +16,6 @@ interface Message {
 }
 
 interface User {
-  name: string;
-}
-
-interface Room {
   name: string;
 }
 
@@ -38,7 +33,7 @@ export function Chat({ room, name, socket }: ChatProps) {
     resolver: zodResolver(FormSchema),
   });
 
-  const [activity, setActivity] = useState<string>("");
+  const [, setActivity] = useState<string>("");
   const [users, setUsers] = useState<User[]>([]);
 
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
